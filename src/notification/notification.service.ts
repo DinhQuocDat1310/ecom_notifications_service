@@ -8,6 +8,7 @@ import * as firebase from 'firebase-admin';
 import * as path from 'path';
 import {
   NOTIFICATION_LOGIN_DIFF_DEVICE,
+  NOTIFICATION_NEW_MESSAGE,
   NOTIFICATION_UPDATED_USER,
   SERVICE_ACCOUNT_NAME,
   USER_SERVICE,
@@ -126,6 +127,10 @@ export class NotificationService {
             data['title'] = 'Login difference device';
             data['body'] =
               "We noticed you're having unusual logins on another device. If not, please protect your account here.";
+            break;
+          case NOTIFICATION_NEW_MESSAGE:
+            data['title'] = user.username;
+            data['body'] = user.messages.message;
             break;
           default:
             break;
