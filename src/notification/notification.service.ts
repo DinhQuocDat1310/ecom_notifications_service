@@ -15,7 +15,7 @@ import {
 } from './constants/service';
 import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from 'src/prisma/service';
-import { Notifications, NotificationToken } from './dto/notification';
+import { Notifications } from './dto/notification';
 import { Status } from '@prisma/client';
 
 firebase.initializeApp({
