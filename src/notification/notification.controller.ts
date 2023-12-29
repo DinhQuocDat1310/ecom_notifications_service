@@ -42,4 +42,16 @@ export class NotificationController {
     this.rmqService.ack(context);
     return user;
   }
+
+  @MessagePattern('send_notification_to_another')
+  async sendNotificationForAnother(
+    @Payload() data: any,
+    @Ctx() context: RmqContext,
+  ) {
+    const user = await this.notificationService.sendNotificationForAnother(
+      data,
+    );
+    this.rmqService.ack(context);
+    return user;
+  }
 }

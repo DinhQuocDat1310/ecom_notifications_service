@@ -21,7 +21,6 @@ import { PrismaService } from 'src/prisma/service';
     NotificationService,
     RabbitMQService,
     ConfigService,
-
     PrismaService,
   ],
 })

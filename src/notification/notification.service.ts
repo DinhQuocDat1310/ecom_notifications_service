@@ -15,7 +15,7 @@ import {
 } from './constants/service';
 import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from 'src/prisma/service';
-import { Notifications } from './dto/notification';
+import { Notifications, NotificationToken } from './dto/notification';
 import { Status } from '@prisma/client';
 
 firebase.initializeApp({
@@ -99,6 +99,7 @@ export class NotificationService {
 
   sendNotification = async (user: any): Promise<void> => {
     try {
+      //Send notification to current user
       const notificationToken =
         await this.prismaService.notificationToken.findFirst({
           where: {
@@ -128,10 +129,6 @@ export class NotificationService {
             data['body'] =
               "We noticed you're having unusual logins on another device. If not, please protect your account here.";
             break;
-          case NOTIFICATION_NEW_MESSAGE:
-            data['title'] = user.username;
-            data['body'] = user.messages.message;
-            break;
           default:
             break;
         }
@@ -149,6 +146,65 @@ export class NotificationService {
           .catch((error) => {
             throw new InternalServerErrorException(error.message);
           });
+      }
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  };
+
+  sendNotificationForAnother = async (user: any): Promise<void> => {
+    try {
+      const memberInConversation = user['members'].filter(
+        (member: any) => member.userId !== user.id,
+      );
+
+      const notificationToken = await Promise.all(
+        memberInConversation.map(async (user: any) => {
+          return await this.prismaService.notificationToken.findMany({
+            where: {
+              userId: user.userId,
+              status: Status.ACTIVE,
+            },
+          });
+        }),
+      );
+      const arrayNotification = notificationToken[0];
+      if (arrayNotification.length > 0) {
+        for (let index = 0; index < arrayNotification.length; index++) {
+          const data = {
+            title: 'Default new notification',
+            body: 'Default new notification send successfully',
+            status: Status.ACTIVE,
+            createdBy: user.username,
+            notificationsToken: {
+              connect: {
+                id: arrayNotification[index].id,
+              },
+            },
+          };
+          switch (user.notify_type) {
+            case NOTIFICATION_NEW_MESSAGE:
+              data['title'] = user.username;
+              data['body'] = user.messages.message;
+              break;
+            default:
+              break;
+          }
+          const notify: Notifications =
+            await this.prismaService.notifications.create({
+              data,
+            });
+
+          await firebase
+            .messaging()
+            .send({
+              notification: { title: notify.title, body: notify.body },
+              token: arrayNotification[index].notificationToken,
+            })
+            .catch((error) => {
+              throw new InternalServerErrorException(error.message);
+            });
+        }
       }
     } catch (error) {
       throw new InternalServerErrorException(error.message);
